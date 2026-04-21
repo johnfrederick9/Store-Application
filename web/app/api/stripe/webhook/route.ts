@@ -155,27 +155,45 @@ export async function POST(request: Request) {
     // Do not 500 — order row is recorded. Logged for reconciliation.
   }
 
-  // Decrement stock. Non-atomic but acceptable for MVP; oversells get refunded manually.
+  // Atomic stock decrement. The RPC's WHERE guard (stock >= qty) makes this
+  // safe under concurrent checkouts — whichever hits the DB first wins. If
+  // a line fails (null return), the order is already paid, so we log it for
+  // manual reconciliation rather than 500ing Stripe.
   for (const line of lines) {
-    const current = products.find((p) => p.id === line.product_id)
-    if (!current) continue
-    const nextStock = Math.max(0, current.stock - line.quantity)
-    await supabase
-      .from('products')
-      .update({ stock: nextStock })
-      .eq('id', line.product_id)
+    const { data: newStock, error: rpcError } = await supabase.rpc(
+      'decrement_product_stock',
+      { p_product_id: line.product_id, p_quantity: line.quantity },
+    )
+
+    if (rpcError) {
+      console.error('[stripe webhook] stock rpc errored', {
+        orderId: order.id,
+        productId: line.product_id,
+        qty: line.quantity,
+        error: rpcError,
+      })
+      continue
+    }
+    if (newStock === null) {
+      console.error('[stripe webhook] OVERSELL — paid but insufficient stock', {
+        orderId: order.id,
+        productId: line.product_id,
+        qty: line.quantity,
+      })
+    }
   }
 
   // Fetch store for email
   const { data: store } = await supabase
     .from('stores')
-    .select('name, currency')
+    .select('name, slug, currency')
     .eq('id', storeId)
     .maybeSingle()
 
   await sendOrderConfirmation({
     to: customerEmail,
     storeName: store?.name ?? 'Store',
+    storeSlug: store?.slug,
     orderId: order.id,
     currency: store?.currency ?? 'USD',
     totalCents,

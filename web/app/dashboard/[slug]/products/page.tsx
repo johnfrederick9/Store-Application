@@ -1,8 +1,10 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ImageIcon, Package, Plus } from 'lucide-react'
+import { ArrowLeft, ImageIcon, Package, Plus, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatPrice } from '@/lib/format'
+import { supabaseImage } from '@/lib/image'
 import { parsePage, totalPages } from '@/lib/pagination'
 import { Pagination } from '@/components/pagination'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
@@ -10,16 +12,30 @@ import { toggleProductActive } from './actions'
 
 const PAGE_SIZE = 24
 
+type Status = 'all' | 'active' | 'inactive'
+
+function pickStatus(v: string | string[] | undefined): Status {
+  const raw = Array.isArray(v) ? v[0] : v
+  return raw === 'active' || raw === 'inactive' ? raw : 'all'
+}
+
 export default async function ProductsPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{
+    page?: string
+    q?: string
+    status?: string
+  }>
 }) {
   const { slug } = await params
   const sp = await searchParams
   const { page, offset, rangeEnd } = parsePage(sp, PAGE_SIZE)
+
+  const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim() ?? ''
+  const status = pickStatus(sp.status)
 
   const supabase = await createClient()
 
@@ -31,17 +47,25 @@ export default async function ProductsPage({
 
   if (!store) notFound()
 
-  const { data: products, count } = await supabase
+  let query = supabase
     .from('products')
     .select('id, name, price_cents, stock, active, image_url', {
       count: 'exact',
     })
     .eq('store_id', store.id)
+
+  if (q) query = query.ilike('name', `%${q}%`)
+  if (status === 'active') query = query.eq('active', true)
+  if (status === 'inactive') query = query.eq('active', false)
+
+  const { data: products, count } = await query
     .order('created_at', { ascending: false })
     .range(offset, rangeEnd)
 
   const pages = totalPages(count, PAGE_SIZE)
   const currency = store.currency ?? 'USD'
+  const hasFilters = q !== '' || status !== 'all'
+  const paginationQuery = { q: q || undefined, status: status === 'all' ? undefined : status }
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
@@ -58,35 +82,77 @@ export default async function ProductsPage({
           title="Products"
           description={
             count !== null && count > 0
-              ? `${count} total in your catalog.`
+              ? `${count} ${hasFilters ? 'matching' : 'total in your catalog'}.`
               : undefined
           }
           action={
-            products && products.length > 0 ? (
-              <Link
-                href={`/dashboard/${slug}/products/new`}
-                className="btn-primary"
-              >
-                <Plus className="h-4 w-4" />
-                New product
-              </Link>
-            ) : undefined
+            <Link
+              href={`/dashboard/${slug}/products/new`}
+              className="btn-primary"
+            >
+              <Plus className="h-4 w-4" />
+              New product
+            </Link>
           }
         />
       </div>
+
+      <form
+        action={`/dashboard/${slug}/products`}
+        className="mt-6 flex flex-col gap-3 sm:flex-row"
+      >
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Search by name"
+            className="input pl-10"
+          />
+        </div>
+        <select
+          name="status"
+          defaultValue={status}
+          className="input sm:w-40"
+        >
+          <option value="all">All products</option>
+          <option value="active">Active only</option>
+          <option value="inactive">Hidden only</option>
+        </select>
+        <button type="submit" className="btn-secondary">
+          Apply
+        </button>
+        {hasFilters && (
+          <Link
+            href={`/dashboard/${slug}/products`}
+            className="btn-ghost"
+          >
+            Clear
+          </Link>
+        )}
+      </form>
 
       {!products || products.length === 0 ? (
         <div className="mt-8">
           <EmptyState
             icon={<Package className="h-6 w-6" />}
-            title={page > 1 ? 'No products on this page' : 'No products yet'}
+            title={
+              hasFilters
+                ? 'No products match your filters'
+                : page > 1
+                  ? 'No products on this page'
+                  : 'No products yet'
+            }
             description={
-              page > 1
-                ? undefined
-                : 'Add your first product to start selling.'
+              hasFilters
+                ? 'Try clearing the search or status filter.'
+                : page > 1
+                  ? undefined
+                  : 'Add your first product to start selling.'
             }
             action={
-              page === 1 ? (
+              !hasFilters && page === 1 ? (
                 <Link
                   href={`/dashboard/${slug}/products/new`}
                   className="btn-primary"
@@ -109,10 +175,11 @@ export default async function ProductsPage({
                     className="flex flex-1 items-center gap-4 min-w-0"
                   >
                     {p.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.image_url}
+                      <Image
+                        src={supabaseImage(p.image_url, { width: 112, resize: 'cover' })!}
                         alt=""
+                        width={56}
+                        height={56}
                         className="h-14 w-14 rounded-lg object-cover ring-1 ring-gray-200"
                       />
                     ) : (
@@ -164,6 +231,7 @@ export default async function ProductsPage({
             basePath={`/dashboard/${slug}/products`}
             page={page}
             totalPages={pages}
+            query={paginationQuery}
           />
         </>
       )}

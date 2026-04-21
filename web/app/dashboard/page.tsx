@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatPrice } from '@/lib/format'
+import { supabaseImage } from '@/lib/image'
 import { EmptyState, PageHeader } from '@/components/ui'
 import { StatusPill } from './[slug]/orders/status-pill'
 
@@ -166,10 +168,11 @@ export default async function DashboardPage() {
                       className="card group flex items-center gap-4 px-4 py-3 transition hover:border-gray-300 hover:shadow"
                     >
                       {store.logo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={store.logo_url}
+                        <Image
+                          src={supabaseImage(store.logo_url, { width: 88, resize: 'cover' })!}
                           alt=""
+                          width={44}
+                          height={44}
                           className="h-11 w-11 rounded-lg object-cover"
                         />
                       ) : (

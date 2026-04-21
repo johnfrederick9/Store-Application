@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import {
@@ -9,6 +10,7 @@ import {
   Store,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseImage } from '@/lib/image'
 
 export default async function StoreAdminPage({
   params,
@@ -38,10 +40,11 @@ export default async function StoreAdminPage({
 
       <div className="mt-6 flex flex-wrap items-center gap-5">
         {store.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={store.logo_url}
+          <Image
+            src={supabaseImage(store.logo_url, { width: 128, resize: 'cover' })!}
             alt=""
+            width={64}
+            height={64}
             className="h-16 w-16 rounded-xl object-cover shadow-sm"
           />
         ) : (

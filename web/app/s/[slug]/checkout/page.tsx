@@ -1,0 +1,28 @@
+import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { CheckoutClient } from './checkout-client'
+
+export default async function CheckoutPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const supabase = await createClient()
+
+  const { data: store } = await supabase
+    .from('stores')
+    .select('id, currency')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (!store) notFound()
+
+  return (
+    <CheckoutClient
+      storeSlug={slug}
+      storeId={store.id}
+      currency={store.currency ?? 'USD'}
+    />
+  )
+}

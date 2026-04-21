@@ -1,0 +1,21 @@
+<svg width="100%" viewBox="0 0 200 200" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Storefront logo</title>
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B2FE8"/>
+      <stop offset="100%" stop-color="#E040C8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="200" height="200" rx="44" fill="url(#bg-grad)"/>
+
+  <!-- Shopping bag: slanted top flaps, flat opening, rounded bottom -->
+  <g fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M68 78 L53 96 V150 Q53 160 63 160 H137 Q147 160 147 150 V96 L132 78 Z"/>
+    <!-- Opening line -->
+    <path d="M53 96 H147"/>
+    <!-- Smile -->
+    <path d="M122 116 A22 22 0 0 1 78 116"/>
+  </g>
+</svg>

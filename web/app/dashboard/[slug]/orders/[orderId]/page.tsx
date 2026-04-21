@@ -1,8 +1,10 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, ImageIcon, Mail, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { formatPrice } from '@/lib/format'
+import { supabaseImage } from '@/lib/image'
 import { updateOrderStatus, type OrderStatus } from '../actions'
 import { StatusPill } from '../status-pill'
 
@@ -136,10 +138,11 @@ export default async function OrderDetailPage({
           {order.order_items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 p-4">
               {item.products?.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.products.image_url}
+                <Image
+                  src={supabaseImage(item.products.image_url, { width: 112, resize: 'cover' })!}
                   alt=""
+                  width={56}
+                  height={56}
                   className="h-14 w-14 rounded-lg object-cover ring-1 ring-gray-200"
                 />
               ) : (
