@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe'
+import { isStripeEnabled } from '@/lib/stripe-enabled'
 
 const bodySchema = z.object({
   storeSlug: z.string().min(1),
@@ -19,6 +20,13 @@ const bodySchema = z.object({
 })
 
 export async function POST(request: Request) {
+  if (!isStripeEnabled()) {
+    return NextResponse.json(
+      { error: 'Checkout is temporarily disabled (demo mode).' },
+      { status: 503 },
+    )
+  }
+
   let parsed
   try {
     parsed = bodySchema.parse(await request.json())

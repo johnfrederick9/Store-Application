@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isStripeEnabled } from '@/lib/stripe-enabled'
 import { CheckoutClient } from './checkout-client'
 
 export default async function CheckoutPage({
@@ -23,6 +24,7 @@ export default async function CheckoutPage({
       storeSlug={slug}
       storeId={store.id}
       currency={store.currency ?? 'USD'}
+      checkoutEnabled={isStripeEnabled()}
     />
   )
 }

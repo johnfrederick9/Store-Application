@@ -3,8 +3,14 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendOrderConfirmation } from '@/lib/email'
+import { isStripeEnabled } from '@/lib/stripe-enabled'
 
 export async function POST(request: Request) {
+  if (!isStripeEnabled()) {
+    // Return 200 so any stray Stripe delivery doesn't retry forever.
+    return NextResponse.json({ received: true, disabled: true })
+  }
+
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
   const secret = process.env.STRIPE_WEBHOOK_SECRET

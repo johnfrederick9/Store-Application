@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ImageIcon, Lock, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, ImageIcon, Info, Lock, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useCart } from '@/lib/cart'
@@ -23,10 +23,12 @@ export function CheckoutClient({
   storeSlug,
   storeId,
   currency,
+  checkoutEnabled,
 }: {
   storeSlug: string
   storeId: string
   currency: string
+  checkoutEnabled: boolean
 }) {
   const { items } = useCart(storeSlug)
   const [products, setProducts] = useState<Product[] | null>(null)
@@ -66,6 +68,10 @@ export function CheckoutClient({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!checkoutEnabled) {
+      toast.error('Checkout is temporarily disabled (demo mode).')
+      return
+    }
     setSubmitting(true)
     try {
       const res = await fetch('/api/checkout', {
@@ -133,6 +139,16 @@ export function CheckoutClient({
         Checkout
       </h1>
 
+      {!checkoutEnabled && (
+        <div className="mt-6 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800 ring-1 ring-amber-200">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Checkout is temporarily unavailable — this store is in demo mode.
+            Payments are not being processed.
+          </span>
+        </div>
+      )}
+
       <div className="mt-8 grid gap-8 sm:grid-cols-[1fr_360px]">
         <form onSubmit={handleSubmit} className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900">
@@ -174,10 +190,12 @@ export function CheckoutClient({
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !checkoutEnabled}
             className="btn-primary mt-6 !w-full !py-3 text-base"
           >
-            {submitting ? (
+            {!checkoutEnabled ? (
+              'Checkout unavailable (demo)'
+            ) : submitting ? (
               'Redirecting to Stripe…'
             ) : (
               <>
@@ -188,7 +206,9 @@ export function CheckoutClient({
           </button>
 
           <p className="mt-3 text-center text-xs text-gray-500">
-            Shipping address collected on the next step
+            {checkoutEnabled
+              ? 'Shipping address collected on the next step'
+              : 'Payments are disabled in demo mode.'}
           </p>
         </form>
 

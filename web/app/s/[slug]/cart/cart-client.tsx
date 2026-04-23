@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ImageIcon,
+  Info,
   Minus,
   Plus,
   ShoppingBag,
@@ -29,10 +30,12 @@ export function CartClient({
   storeSlug,
   storeId,
   currency,
+  checkoutEnabled,
 }: {
   storeSlug: string
   storeId: string
   currency: string
+  checkoutEnabled: boolean
 }) {
   const { items, setQuantity, remove, clear } = useCart(storeSlug)
   const [products, setProducts] = useState<Product[] | null>(null)
@@ -220,15 +223,37 @@ export function CartClient({
         </div>
       </div>
 
-      <Link
-        href={`/s/${storeSlug}/checkout`}
-        className="btn-primary mt-6 !w-full !py-3 text-base"
-      >
-        Checkout
-      </Link>
-      <p className="mt-3 text-center text-xs text-gray-500">
-        Shipping and taxes calculated at checkout
-      </p>
+      {checkoutEnabled ? (
+        <>
+          <Link
+            href={`/s/${storeSlug}/checkout`}
+            className="btn-primary mt-6 !w-full !py-3 text-base"
+          >
+            Checkout
+          </Link>
+          <p className="mt-3 text-center text-xs text-gray-500">
+            Shipping and taxes calculated at checkout
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="mt-6 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-800 ring-1 ring-amber-200">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Checkout is temporarily unavailable — this store is in demo mode.
+              You can still browse and build a cart.
+            </span>
+          </div>
+          <button
+            type="button"
+            disabled
+            className="btn-primary mt-4 !w-full !py-3 text-base"
+            aria-disabled="true"
+          >
+            Checkout unavailable (demo)
+          </button>
+        </>
+      )}
     </main>
   )
 }
