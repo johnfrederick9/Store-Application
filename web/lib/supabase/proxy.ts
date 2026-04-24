@@ -29,10 +29,17 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Guard against stray sessions from another app sharing this Supabase project.
+  const isStrayUser = !!user && user.user_metadata?.app !== 'storefront'
+  if (isStrayUser) {
+    await supabase.auth.signOut()
+  }
+
+  const effectiveUser = isStrayUser ? null : user
   const pathname = request.nextUrl.pathname
   const isProtected = pathname.startsWith('/dashboard')
 
-  if (isProtected && !user) {
+  if (isProtected && !effectiveUser) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('next', pathname)

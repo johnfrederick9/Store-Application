@@ -17,7 +17,7 @@ export async function signIn(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
     if (error.message.toLowerCase().includes('email not confirmed')) {
@@ -30,6 +30,11 @@ export async function signIn(
       return { error: 'Invalid email or password.' }
     }
     return { error: error.message }
+  }
+
+  if (data.user?.user_metadata?.app !== 'storefront') {
+    await supabase.auth.signOut()
+    return { error: 'Invalid email or password.' }
   }
 
   redirect('/dashboard')

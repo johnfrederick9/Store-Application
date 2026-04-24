@@ -31,7 +31,7 @@ export async function signUp(
     email,
     password,
     options: {
-      data: { full_name: fullName },
+      data: { app: 'storefront', full_name: fullName },
       emailRedirectTo: `${origin}/auth/callback`,
     },
   })
